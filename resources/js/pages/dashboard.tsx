@@ -512,11 +512,11 @@ export default function Dashboard() {
                                                   <div className="relative h-36 overflow-hidden rounded-lg border border-sidebar-border/50 bg-muted/40 dark:border-sidebar-border">
                                                       {product.image ? (
                                                           <img
-                                                              src={product.image}
+                                                              src={`/storage/${product.image}`}
                                                               alt={product.name}
                                                               className="h-full w-full object-cover"
                                                               loading="lazy"
-                                                          />
+                                                          /> 
                                                       ) : (
                                                           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                                                               No image
