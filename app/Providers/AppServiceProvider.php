@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Filament\Forms\Components\Select;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Cashier\Cashier;
 
@@ -23,5 +24,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Cashier::useCustomerModel(User::class);
         // Cashier::calculateTaxes();
+
+        Select::configureUsing(function (Select $select) {
+            return $select->native(false);
+        });
     }
 }

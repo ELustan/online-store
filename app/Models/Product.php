@@ -39,6 +39,7 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'description' => 'array',
         'discount_percent' => 'decimal:2',
         'cashback_percent' => 'decimal:2',
         'promo_expires_at' => 'datetime',

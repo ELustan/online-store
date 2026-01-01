@@ -1,6 +1,20 @@
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +41,11 @@ type Product = {
         rating: number;
         comment: string;
         reviewer: string;
+    }[];
+    images?: {
+        id: number;
+        url: string | null;
+        caption?: string | null;
     }[];
 };
 
@@ -79,6 +98,16 @@ export default function Dashboard() {
         null,
     );
     const favoriteToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [selectedImages, setSelectedImages] = useState<Record<number, string>>({});
+    const [imageModal, setImageModal] = useState<{
+        url: string;
+        caption?: string | null;
+        name: string;
+    } | null>(null);
+    const [descriptionSheet, setDescriptionSheet] = useState<{
+        name: string;
+        description: string;
+    } | null>(null);
     const [cartReady, setCartReady] = useState(false);
     const cartSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [filters, setFilters] = useState({
@@ -293,6 +322,15 @@ export default function Dashboard() {
         }, 2200);
     };
 
+    const openImageModal = (url: string, product: Product) => {
+        const match = product.images?.find((image) => image.url === url);
+        setImageModal({
+            url,
+            caption: match?.caption ?? null,
+            name: product.name,
+        });
+    };
+
     const toggleFavorite = async (productId: number) => {
         const next = new Set(favorites);
         const isFavorite = next.has(productId);
@@ -504,25 +542,67 @@ export default function Dashboard() {
                                           const promoDate = formatPromoDate(product.promo_expires_at);
                                           const showDiscount = product.discount_percent > 0;
                                           const showCashback = product.cashback_percent > 0;
+                                          const previewImages = [
+                                              product.image,
+                                              ...(product.images ?? []).map((image) => image.url),
+                                          ].filter((image): image is string => Boolean(image));
+                                          const activeImage =
+                                              selectedImages[product.id] ??
+                                              previewImages[0] ??
+                                              null;
                                           return (
                                               <div
                                                   key={product.id}
                                                   className="flex h-full flex-col rounded-xl border border-sidebar-border/70 bg-background p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-sidebar-border"
                                               >
                                                   <div className="relative h-36 overflow-hidden rounded-lg border border-sidebar-border/50 bg-muted/40 dark:border-sidebar-border">
-                                                      {product.image ? (
-                                                          <img
-                                                              src={`/storage/${product.image}`}
-                                                              alt={product.name}
-                                                              className="h-full w-full object-cover"
-                                                              loading="lazy"
-                                                          /> 
+                                                      {activeImage ? (
+                                                          <button
+                                                              className="h-full w-full"
+                                                              onClick={() => openImageModal(activeImage, product)}
+                                                              type="button"
+                                                          >
+                                                              <img
+                                                                  src={activeImage}
+                                                                  alt={product.name}
+                                                                  className="h-full w-full object-cover"
+                                                                  loading="lazy"
+                                                              />
+                                                          </button>
                                                       ) : (
                                                           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                                                               No image
                                                           </div>
                                                       )}
                                                   </div>
+                                                  {previewImages.length > 1 ? (
+                                                      <div className="mt-2 flex flex-wrap gap-2">
+                                                          {previewImages.map((image, index) => (
+                                                              <button
+                                                                  key={`${product.id}-preview-${index}`}
+                                                                  className={`h-10 w-10 overflow-hidden rounded-md border ${
+                                                                      activeImage === image
+                                                                          ? 'border-foreground'
+                                                                          : 'border-sidebar-border/70'
+                                                                  }`}
+                                                                  onClick={() =>
+                                                                      setSelectedImages((prev) => ({
+                                                                          ...prev,
+                                                                          [product.id]: image,
+                                                                      }))
+                                                                  }
+                                                                  type="button"
+                                                              >
+                                                                  <img
+                                                                      src={image}
+                                                                      alt={`${product.name} preview ${index + 1}`}
+                                                                      className="h-full w-full object-cover"
+                                                                      loading="lazy"
+                                                                  />
+                                                              </button>
+                                                          ))}
+                                                      </div>
+                                                  ) : null}
                                                   <div className="mt-4 flex items-start justify-between gap-3">
                                                       <div>
                                                           <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -559,9 +639,28 @@ export default function Dashboard() {
                                                       </span>
                                                   )}
                                               </div>
-                                                  <p className="mt-3 max-h-10 overflow-hidden text-sm text-muted-foreground">
-                                                      {product.description ?? 'No description provided.'}
-                                                  </p>
+                                                  <div
+                                                      className="mt-3 max-h-12 overflow-hidden text-sm text-muted-foreground"
+                                                      dangerouslySetInnerHTML={{
+                                                          __html:
+                                                              product.description ??
+                                                              '<p>No description provided.</p>',
+                                                      }}
+                                                  />
+                                                  {product.description ? (
+                                                      <button
+                                                          className="mt-2 text-xs font-semibold text-foreground/70"
+                                                          onClick={() =>
+                                                              setDescriptionSheet({
+                                                                  name: product.name,
+                                                                  description: product.description ?? '',
+                                                              })
+                                                          }
+                                                          type="button"
+                                                      >
+                                                          Read full description
+                                                      </button>
+                                                  ) : null}
                                               <div className="mt-4 flex items-end justify-between">
                                                   <div>
                                                           {showDiscount ? (
@@ -778,6 +877,41 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+            <Dialog open={Boolean(imageModal)} onOpenChange={(open) => (!open ? setImageModal(null) : null)}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>{imageModal?.name ?? 'Product image'}</DialogTitle>
+                        <DialogDescription>
+                            {imageModal?.caption ?? 'Preview image'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {imageModal?.url ? (
+                        <div className="overflow-hidden rounded-lg border border-sidebar-border/70">
+                            <img
+                                src={imageModal.url}
+                                alt={imageModal.name}
+                                className="h-full w-full object-contain"
+                            />
+                        </div>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
+            <Sheet open={Boolean(descriptionSheet)} onOpenChange={(open) => (!open ? setDescriptionSheet(null) : null)}>
+                <SheetContent side="right" className="flex h-full w-full max-w-lg flex-col">
+                    <SheetHeader>
+                        <SheetTitle>{descriptionSheet?.name ?? 'Description'}</SheetTitle>
+                        <SheetDescription>Full product details</SheetDescription>
+                    </SheetHeader>
+                    <div
+                        className="mt-4 flex-1 overflow-y-auto p-4 text-sm text-muted-foreground"
+                        dangerouslySetInnerHTML={{
+                            __html:
+                                descriptionSheet?.description ??
+                                '<p>No description provided.</p>',
+                        }}
+                    />
+                </SheetContent>
+            </Sheet>
         </AppLayout>
     );
 }

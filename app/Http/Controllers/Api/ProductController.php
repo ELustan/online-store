@@ -9,6 +9,8 @@ use App\Models\Product;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -33,6 +35,7 @@ class ProductController extends Controller
                 'products' => Product::query()
                     ->with([
                         'category:id,name',
+                        'images:id,product_id,path,caption',
                         'reviews' => function ($query) {
                             $query->latest()
                                 ->limit(2)
@@ -106,6 +109,7 @@ class ProductController extends Controller
     {
         $product->load([
             'category:id,name',
+            'images:id,product_id,path,caption',
             'reviews' => function ($query) {
                 $query->latest()
                     ->limit(10)
@@ -170,7 +174,7 @@ class ProductController extends Controller
             'name' => $product->name,
             'slug' => $product->slug,
             'category' => $product->category?->name,
-            'image' => $product->image,
+            'image' => $this->formatImageUrl($product->image),
             'description' => $product->description,
             'price' => $price,
             'discount_percent' => $discountPercent,
@@ -184,6 +188,15 @@ class ProductController extends Controller
                 ? round((float) $product->reviews_avg_rating, 1)
                 : null,
             'reviews_count' => $product->reviews_count ?? 0,
+            'images' => $product->relationLoaded('images')
+                ? $product->images->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'caption' => $image->caption,
+                        'url' => $this->formatImageUrl($image->path),
+                    ];
+                })->values()
+                : [],
             'reviews' => $product->relationLoaded('reviews')
                 ? $product->reviews->map(function ($review) {
                     return [
@@ -214,5 +227,18 @@ class ProductController extends Controller
     private function formatDate(?CarbonInterface $date): ?string
     {
         return $date?->toISOString();
+    }
+
+    private function formatImageUrl(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (Str::startsWith($path, ['http://', 'https://', '/storage/'])) {
+            return $path;
+        }
+
+        return Storage::url($path);
     }
 }
