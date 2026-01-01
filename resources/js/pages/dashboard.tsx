@@ -16,6 +16,7 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Head } from '@inertiajs/react';
+import { Heart, ShoppingBasket } from 'lucide-react';
 import axios from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -104,6 +105,7 @@ export default function Dashboard() {
         caption?: string | null;
         name: string;
     } | null>(null);
+    const [cartPulse, setCartPulse] = useState<number | null>(null);
     const [descriptionSheet, setDescriptionSheet] = useState<{
         name: string;
         description: string;
@@ -249,6 +251,8 @@ export default function Dashboard() {
             ...prev,
             [productId]: (prev[productId] ?? 0) + 1,
         }));
+        setCartPulse(productId);
+        setTimeout(() => setCartPulse(null), 500);
     };
 
     const handleRemoveFromCart = (productId: number) => {
@@ -685,9 +689,9 @@ export default function Dashboard() {
                                                   </div>
                                                   <div className="flex items-center gap-2">
                                                       <button
-                                                          className={`rounded-md border px-2 py-2 text-xs font-semibold transition duration-200 dark:border-sidebar-border ${
+                                                          className={`rounded-md border p-2 text-xs font-semibold transition duration-200 dark:border-sidebar-border ${
                                                               favorites.has(product.id)
-                                                                  ? 'border-amber-300 bg-amber-50 text-amber-700'
+                                                                  ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200'
                                                                   : 'border-sidebar-border/70 text-muted-foreground'
                                                           } ${
                                                               favoritePulse === product.id
@@ -696,16 +700,32 @@ export default function Dashboard() {
                                                           }`}
                                                           onClick={() => toggleFavorite(product.id)}
                                                           type="button"
+                                                          aria-label={
+                                                              favorites.has(product.id)
+                                                                  ? 'Remove from favorites'
+                                                                  : 'Add to favorites'
+                                                          }
                                                       >
-                                                          {favorites.has(product.id) ? '★' : '☆'}
+                                                          <Heart
+                                                              className={`h-4 w-4 ${
+                                                                  favorites.has(product.id)
+                                                                      ? 'fill-current'
+                                                                      : ''
+                                                              }`}
+                                                          />
                                                       </button>
                                                       <button
-                                                          className="rounded-md bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                                                          className="relative rounded-md bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                                                           onClick={() => handleAddToCart(product.id)}
                                                           disabled={checkoutState.status === 'loading'}
                                                           type="button"
                                                       >
                                                           Add to cart
+                                                          {cartPulse === product.id ? (
+                                                              <span className="absolute -right-3 -top-3 inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-700 shadow-sm animate-bounce">
+                                                                  <ShoppingBasket className="h-3 w-3" />
+                                                              </span>
+                                                          ) : null}
                                                       </button>
                                                   </div>
                                               </div>

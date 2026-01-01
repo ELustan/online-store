@@ -7,6 +7,8 @@ use App\Models\Favorite;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class FavoriteController extends Controller
 {
@@ -34,7 +36,7 @@ class FavoriteController extends Controller
                         'cashback_percent',
                         'promo_label',
                         'promo_expires_at',
-                    ])->with('category:id,name');
+                    ])->with(['category:id,name', 'images:id,product_id,path,caption']);
                 },
             ])
             ->latest()
@@ -58,7 +60,7 @@ class FavoriteController extends Controller
                     'name' => $product->name,
                     'slug' => $product->slug,
                     'category' => $product->category?->name,
-                    'image' => $product->image,
+                    'image' => $this->formatImageUrl($product->image),
                     'description' => $product->description,
                     'price' => $price,
                     'discount_percent' => $discountPercent,
@@ -69,6 +71,15 @@ class FavoriteController extends Controller
                         && ($product->promo_expires_at === null || $product->promo_expires_at->isFuture()),
                     'final_price' => round($discountedPrice, 2),
                     'cashback_amount' => round($cashbackAmount, 2),
+                    'images' => $product->relationLoaded('images')
+                        ? $product->images->map(function ($image) {
+                            return [
+                                'id' => $image->id,
+                                'caption' => $image->caption,
+                                'url' => $this->formatImageUrl($image->path),
+                            ];
+                        })->values()
+                        : [],
                 ];
             })->filter()->values(),
         ]);
@@ -106,5 +117,18 @@ class FavoriteController extends Controller
             ->delete();
 
         return response()->json(['message' => 'Removed from favorites.']);
+    }
+
+    private function formatImageUrl(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (Str::startsWith($path, ['http://', 'https://', '/storage/'])) {
+            return $path;
+        }
+
+        return Storage::url($path);
     }
 }
