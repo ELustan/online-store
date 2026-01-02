@@ -28,8 +28,6 @@ A full-stack online store built with Laravel and React, featuring Stripe payment
 
 ## Project Structure (Typical)
 
-> Adjust this section if your structure differs.
-
 - `app/` — Laravel application code
 - `routes/` — Web/API routes
 - `database/` — Migrations/seeders
@@ -42,9 +40,9 @@ A full-stack online store built with Laravel and React, featuring Stripe payment
 
 ## Requirements
 
-- PHP **8.1+** (recommended: match your production version)
+- PHP **8.4+** (recommended: match your production version)
 - Composer **2.x**
-- Node.js **18+** and npm/yarn
+- Node.js **23+** and npm/yarn
 - MySQL or PostgreSQL (depending on your `.env`)
 - Stripe account + API keys
 
